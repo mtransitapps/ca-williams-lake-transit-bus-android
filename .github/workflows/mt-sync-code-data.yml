@@ -160,7 +160,6 @@ jobs:
             echo "No image generation required.";
             exit 1 # fail
           fi
-          # echo "image_gen_required=$RESULT" >> "$GITHUB_OUTPUT"
 
       - name: MT push commits
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
