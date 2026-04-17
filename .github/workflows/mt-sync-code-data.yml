@@ -152,11 +152,7 @@ jobs:
         continue-on-error: true
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
         run: |
-          # check if app-android/src/main/res/values/gtfs_rts_values_gen.xml changed (gtfs_rts_color | gtfs_rts_agency_type)
-          # git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep -E 'app-android/src/main/res/values/gtfs_rts_values_gen.xml' > /dev/null;
-          # git diff-index --name-only --quiet HEAD -- app-android/src/main/res/values/gtfs_rts_values_gen.xml
           RESULT=$(git diff-index --name-only HEAD -- "app-android/src/main/res/values/gtfs_rts_values_gen.xml" | wc -l)
-          echo "RESULT=$RESULT"
           if [ "$RESULT" -gt 0 ]; then
             echo "Image generation required.";
             exit 0 # success
