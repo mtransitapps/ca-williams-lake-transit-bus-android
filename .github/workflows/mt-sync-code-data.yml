@@ -146,6 +146,14 @@ jobs:
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
         run: ./parse_list_change.sh
 
+      - name: MT check if image generation required
+        id: mt-check-image-gen-required
+        if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
+        run: |
+          # check if app-android/src/main/res/values/gtfs_rts_values_gen.xml changed (gtfs_rts_color | gtfs_rts_agency_type)
+          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep -E 'app-android/src/main/res/values/gtfs_rts_values_gen.xml|app-android/src/main/res/values/bike_station_values.xml|config/gtfs/agency.json|config/agency_name|config/cities|config/state' > /dev/null;
+          echo "image_gen_required=$?" >> "$GITHUB_OUTPUT"
+
       - name: MT push commits
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
         run: ./push_commits.sh
@@ -173,6 +181,12 @@ jobs:
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
         run: ./commit_data_change.sh
       # ----------
+
+      - name: MT generate images if required
+        if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-check-image-gen-required.outputs.image_gen_required == '0' }}
+        run: |
+          echo MT_IMAGE_GEN_REQUIRED=true >> "$GITHUB_ENV";
+          ./commons/code_setup.sh;
 
       - name: MT set app release required (or not)
         if: ${{ github.event_name != 'pull_request' && github.event.inputs.skip-app-release != 'true' }}
