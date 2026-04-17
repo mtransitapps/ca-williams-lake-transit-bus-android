@@ -188,6 +188,19 @@ jobs:
           echo MT_IMAGE_GEN_REQUIRED=true >> "$GITHUB_ENV";
           ./commons/code_setup.sh;
 
+      - name: MT commit image change
+        if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-check-image-gen-required.outputs.image_gen_required == '0' }}
+        run: |
+          git add -v -A -- ':(glob)**/*.png'
+          if git diff --staged --quiet; then
+            echo "No new images to commit."
+          else
+            echo "Committing generated images.";
+            git config user.name "$MT_BOT_USER_NAME"
+            git config user.email "$MT_BOT_USER_EMAIL"
+            git commit -m "CI: update generated images"
+          fi
+
       - name: MT set app release required (or not)
         if: ${{ github.event_name != 'pull_request' && github.event.inputs.skip-app-release != 'true' }}
         run: ./set_app_release_required.sh
