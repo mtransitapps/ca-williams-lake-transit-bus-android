@@ -117,6 +117,7 @@ jobs:
       # DOWNLOAD (not PR) AND PARSE (NOT main repo/bike)
       - name: MT download data (& archive)
         if: ${{ github.event_name != 'pull_request' && env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && github.event.inputs.skip-download-data != 'true' }}
+        id: mt-download-data
         timeout-minutes: 10
         continue-on-error: true # optional (continue with archive data)
         run: ./download_only.sh
@@ -151,7 +152,7 @@ jobs:
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
         run: |
           # check if app-android/src/main/res/values/gtfs_rts_values_gen.xml changed (gtfs_rts_color | gtfs_rts_agency_type)
-          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep -E 'app-android/src/main/res/values/gtfs_rts_values_gen.xml|app-android/src/main/res/values/bike_station_values.xml|config/gtfs/agency.json|config/agency_name|config/cities|config/state' > /dev/null;
+          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep -E 'app-android/src/main/res/values/gtfs_rts_values_gen.xml' > /dev/null;
           echo "image_gen_required=$?" >> "$GITHUB_OUTPUT"
 
       - name: MT push commits
@@ -159,7 +160,7 @@ jobs:
         run: ./push_commits.sh
 
       - name: MT artifact > GTFS files
-        if: ${{ !cancelled() && env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }} # even if tests fails
+        if: ${{ !cancelled() && env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-download-data.conclusion != 'skipped' }} # even if tests fails
         uses: actions/upload-artifact@v7
         with:
           name: gtfs
@@ -169,7 +170,7 @@ jobs:
           retention-days: 31
 
       - name: MT artifact > GTFS validator results
-        if: ${{ !cancelled() && env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }} # even if tests fails
+        if: ${{ !cancelled() && env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-download-data.conclusion != 'skipped' }} # even if tests fails
         uses: actions/upload-artifact@v7
         with:
           name: gtfs-validator-results
@@ -185,8 +186,9 @@ jobs:
       - name: MT generate images if required
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-check-image-gen-required.outputs.image_gen_required == '0' }}
         run: |
-          echo MT_IMAGE_GEN_REQUIRED=true >> "$GITHUB_ENV";
           ./commons/code_setup.sh;
+        env:
+          MT_GENERATE_IMAGES: true
 
       - name: MT commit image change
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-check-image-gen-required.outputs.image_gen_required == '0' }}
