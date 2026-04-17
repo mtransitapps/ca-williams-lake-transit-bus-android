@@ -152,8 +152,15 @@ jobs:
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
         run: |
           # check if app-android/src/main/res/values/gtfs_rts_values_gen.xml changed (gtfs_rts_color | gtfs_rts_agency_type)
-          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep -E 'app-android/src/main/res/values/gtfs_rts_values_gen.xml' > /dev/null;
-          echo "image_gen_required=$?" >> "$GITHUB_OUTPUT"
+          # git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep -E 'app-android/src/main/res/values/gtfs_rts_values_gen.xml' > /dev/null;
+          # git diff-index --name-only --quiet HEAD -- app-android/src/main/res/values/gtfs_rts_values_gen.xml
+          RESULT=$(git diff-index --name-only HEAD -- "app-android/src/main/res/values/gtfs_rts_values_gen.xml" | wc -l)
+          if [ "$RESULT" -gt 0 ]; then
+            echo "Changes detected in gtfs_rts_values_gen.xml. Image generation is required.";
+          else
+            echo "No changes detected in gtfs_rts_values_gen.xml. Image generation is not required.";
+          fi
+          echo "image_gen_required=$RESULT" >> "$GITHUB_OUTPUT"
 
       - name: MT push commits
         if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' }}
@@ -184,14 +191,14 @@ jobs:
       # ----------
 
       - name: MT generate images if required
-        if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-check-image-gen-required.outputs.image_gen_required == '0' }}
+        if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-check-image-gen-required.outputs.image_gen_required > '0' }}
         run: |
           ./commons/code_setup.sh;
         env:
           MT_GENERATE_IMAGES: true
 
       - name: MT commit image change
-        if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-check-image-gen-required.outputs.image_gen_required == '0' }}
+        if: ${{ env.MT_IS_AGENCY_BIKE != 'true' && env.MT_IS_MAIN_REPO != 'true' && steps.mt-check-image-gen-required.outputs.image_gen_required > '0' }}
         run: |
           git add -v -A -- ':(glob)**/*.png'
           if git diff --staged --quiet; then
