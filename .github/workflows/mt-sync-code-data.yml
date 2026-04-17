@@ -156,9 +156,12 @@ jobs:
           # git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep -E 'app-android/src/main/res/values/gtfs_rts_values_gen.xml' > /dev/null;
           # git diff-index --name-only --quiet HEAD -- app-android/src/main/res/values/gtfs_rts_values_gen.xml
           RESULT=$(git diff-index --name-only HEAD -- "app-android/src/main/res/values/gtfs_rts_values_gen.xml" | wc -l)
+          echo "RESULT=$RESULT"
           if [ "$RESULT" -gt 0 ]; then
+            echo "Image generation required.";
             exit 0 # success
           else
+            echo "No image generation required.";
             exit 1 # fail
           fi
           # echo "image_gen_required=$RESULT" >> "$GITHUB_OUTPUT"
